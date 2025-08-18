@@ -1,0 +1,35 @@
+services:
+  cucinabot:
+    build: .
+    command: >
+      bash -c "python app.py"
+    ports:
+      - 7860:7860
+    depends_on:
+      - cucinabot_db
+    environment:
+      - DATABASE_URL= postgresql://cucinabot:cucinabot@cucinabot_db:5432/postgres
+    networks:
+      - langgraph_network
+
+  cucinabot_db:
+    image: postgres:15
+    container_name: cucinabot_db
+    restart: always
+    environment:
+      POSTGRES_USER: cucinabot
+      POSTGRES_PASSWORD: cucinabot
+    ports:
+      - '5432:5432'
+    volumes:
+      - langgraph_demo_db:/var/lib/postgresql/data
+    networks:
+      - langgraph_network
+
+volumes:
+  langgraph_demo_db:
+    driver: local
+
+networks:
+  langgraph_network:
+    driver: bridge

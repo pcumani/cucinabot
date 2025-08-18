@@ -1,15 +1,10 @@
-beautifulsoup4
 datasets
-ddgs
-duckduckgo-search
 gradio
 langchain-community
 langchain_experimental
 langchain_huggingface
 langchain_google_genai
 langchain_ollama
-langchain_tavily
 langgraph
 python-dotenv
 rank_bm25
-requests

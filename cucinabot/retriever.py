@@ -26,7 +26,7 @@ bm25_retriever = BM25Retriever.from_documents(docs)
 
 @tool
 def recipes_info_tool(query: str) -> str:
-    """Retrieves detailed recipe based on ingredients or title.
+    """Retrieves detailed recipes from a local Epicurious database, based on ingredients or title.
     
     Args:
         query (str): A query string containing ingredients or recipe title.

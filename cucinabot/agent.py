@@ -16,9 +16,9 @@ from langchain_core.messages.utils import (
 )
 
 # Import our custom tools from their modules
-from src.tools import webpage_reader_tool, get_recipes_web_tool, unit_converter_tool, \
+from cucinabot.tools import unit_converter_tool, \
                 multiply, add, subtract, divide
-from src.retriever import recipes_info_tool
+from cucinabot.retriever import recipes_info_tool
 
 load_dotenv()
 
@@ -75,9 +75,7 @@ class FinalAgent:
                     )
             chat = ChatGoogleGenerativeAI(model="gemini-2.5-flash", rate_limiter=rate_limiter)
 
-        tools = [webpage_reader_tool,
-                get_recipes_web_tool,
-                unit_converter_tool,
+        tools = [unit_converter_tool,
                 multiply, add, subtract, divide,
                 recipes_info_tool]
         chat_with_tools = chat.bind_tools(tools)
@@ -148,7 +146,7 @@ class FinalAgent:
         except Exception as e:
             print(f"Error clearing InMemorySaver storage for thread_id {thread_id}: {e}")
     
-    def __call__(self, question: str, attached_file: dict, recursion_limit=9) -> str:
+    def __call__(self, question: str, attached_file: dict, recursion_limit=-1) -> str:
         print(f"Agent received question (first 100 chars): {question[:100]}...")
 
         if attached_file['name'] != "" and attached_file['content'] is not None:

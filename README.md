@@ -80,12 +80,12 @@ python app.py
 
 ```
 
-This will launch a local web interface, where you can enter your cooking preferences (e.g., ingredients, dietary restrictions) and receive personalized recipe suggestions powered by the LangGraph agent.
+This will launch a local web interface (http://localhost:7860/), where you can enter your cooking preferences (e.g., ingredients, dietary restrictions) and receive personalized recipe suggestions powered by the LangGraph agent.
 
 ## Configuration
 - system_prompt.yaml: Customize the agent’s initial behavior, tone, or style of suggestions using this system prompt file.
 
-- API Keys or LLM Configuration: Depending on the model used (e.g., OpenAI, Claude), you may need to set environment variables like OPENAI_API_KEY or equivalents, or modify code imports and parameters.
+- API Keys or LLM Configuration: Depending on the model used (e.g., Google, HuggingFace), you may need to set environment variables like GOOGLE_API_KEY or equivalents, or modify code imports and parameters.
 
 ## License
 This project is licensed under the MIT License.

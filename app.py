@@ -16,7 +16,7 @@
 import os
 from typing import Optional
 
-from src.agent import FinalAgent
+from cucinabot.agent import FinalAgent
 
 agent_class = FinalAgent()
 
