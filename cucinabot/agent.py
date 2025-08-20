@@ -27,7 +27,7 @@ load_dotenv()
 
 # Database connection string postgresql://USER:PASSWORD@EXTERNAL_HOST:PORT/DATABASE
 try:
-    DATABASE_URL = os.environ["DATABASE_URL"] #+"?sslmode=disable"
+    DATABASE_URL = os.environ["DATABASE_URL"]
 except KeyError:
     # default to a local database if not set
     DATABASE_URL = "postgresql://cucinabot:cucinabot@localhost:5432/postgres?sslmode=disable"

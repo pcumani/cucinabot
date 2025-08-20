@@ -16,9 +16,7 @@ A recipe suggestion agent built with **LangGraph** that allows you to interactiv
 
 - [Overview](#overview)  
 - [Features](#features)  
-- [Getting Started](#getting-started)  
-  - [Prerequisites](#prerequisites)  
-  - [Installation](#installation)  
+- [Getting Started](#getting-started)
 - [Usage](#usage)  
 - [Configuration](#configuration)
 - [License](#license)
@@ -41,51 +39,54 @@ This repository implements a **LangGraph**‑based agent that helps you generate
 
 ## Getting Started
 
-### Prerequisites
+To get started with **Cucinabot**, you have two options: using **Docker Compose** for an isolated environment or performing a **local installation** for more control.
 
-- Python 3.10 or higher  
-- `pip` package manager  
-- (Optional) Virtual environment (recommended)
+---
 
-### Installation
+### 🚀 Option 1: Docker Compose
 
-1. Clone the repository:
+Docker Compose simplifies the setup by managing dependencies and environment variables for you.
 
-    ```bash
-    git clone https://github.com/pcumani/langgraph_agent.git
-    cd langgraph_agent
-    ```
+**Prerequisites:** [Docker](https://www.docker.com/products/docker-desktop) & [Docker Compose](https://docs.docker.com/compose/install/)
 
-2. (Optional) Set up and activate a virtual environment:
+```bash
+git clone https://github.com/pcumani/cucinabot.git
+cd cucinabot
+docker-compose up --build
+```
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+### 🛠️ Option 2: Local Installation
 
-3. Install the required dependencies:
+For more flexibility or if you prefer not to use Docker, you can set up Cucinabot locally.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+**Prerequisites:** Python 3.10 or higher, `pip` package manager, Virtual environment (optional but recommended), and a running PostgreSQL database (can be run via Docker).
+
+1. Run PostgreSQL via Docker (example):
+
+```bash
+docker run -d --rm -e POSTGRES_USER='cucinabot' -e POSTGRES_PASSWORD='cucinabot' -p 5432:5432 postgres:15
+```
+
+2. Install and run Cucinabot locally:
+
+```bash
+git clone https://github.com/pcumani/cucinabot.git
+cd cucinabot
+# Optional : activate a virtual environment first
+pip install -r requirements.txt
+python app.py
+```
 
 ---
 
 ## Usage
 
-To start the Gradio-based agent:
-
-```bash
-python app.py
-
-```
-
-This will launch a local web interface (http://localhost:7860/), where you can enter your cooking preferences (e.g., ingredients, dietary restrictions) and receive personalized recipe suggestions powered by the LangGraph agent.
+Once the application is running, open your browser and go to http://localhost:7860 to interact with Cucinabot. There you can enter your cooking preferences (e.g., ingredients, dietary restrictions) and receive personalized recipe suggestions powered by the LangGraph agent.
 
 ## Configuration
 - system_prompt.yaml: Customize the agent’s initial behavior, tone, or style of suggestions using this system prompt file.
 
-- API Keys or LLM Configuration: Depending on the model used (e.g., Google, HuggingFace), you may need to set environment variables like GOOGLE_API_KEY or equivalents, or modify code imports and parameters.
+- API Keys or LLM Configuration: Depending on the model used (e.g., Google, HuggingFace), you may need to set environment variables like GOOGLE_API_KEY or equivalents, or modify code imports and parameters. You can add a .env file to the repository, containing all important environment variables.
 
 ## License
 This project is licensed under the MIT License.
