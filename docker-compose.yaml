@@ -6,11 +6,10 @@ services:
     ports:
       - 7860:7860
     depends_on:
-      - cucinabot_db
+      cucinabot_db:
+        condition: service_healthy
     environment:
-      - DATABASE_URL= postgresql://cucinabot:cucinabot@cucinabot_db:5432/postgres
-    networks:
-      - langgraph_network
+      - DATABASE_URL=postgresql://cucinabot:cucinabot@cucinabot_db:5432/postgres
 
   cucinabot_db:
     image: postgres:15
@@ -23,13 +22,19 @@ services:
       - '5432:5432'
     volumes:
       - langgraph_demo_db:/var/lib/postgresql/data
-    networks:
-      - langgraph_network
+    healthcheck:
+      test: pg_isready -U cucinabot
+      start_period: 10s
+      timeout: 1s
+      retries: 5
+      interval: 5s
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
 
 volumes:
   langgraph_demo_db:
     driver: local
-
-networks:
-  langgraph_network:
-    driver: bridge

@@ -1,10 +1,12 @@
 datasets
 gradio
 langchain-community
+langgraph-checkpoint-postgres
 langchain_experimental
 langchain_huggingface
 langchain_google_genai
 langchain_ollama
 langgraph
+psycopg[binary,pool]
 python-dotenv
 rank_bm25

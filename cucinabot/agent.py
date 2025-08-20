@@ -1,15 +1,18 @@
+import os
 import mimetypes
 import base64
 import yaml
 from typing import TypedDict, Annotated, Union
 from dotenv import load_dotenv
-from langgraph.checkpoint.memory import InMemorySaver
+
+from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.store.postgres import PostgresStore
 from langgraph.graph.message import add_messages
-from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import tools_condition
+from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage
 from langchain_core.messages.utils import (
     trim_messages,
     count_tokens_approximately
@@ -21,6 +24,13 @@ from cucinabot.tools import unit_converter_tool, \
 from cucinabot.retriever import recipes_info_tool
 
 load_dotenv()
+
+# Database connection string postgresql://USER:PASSWORD@EXTERNAL_HOST:PORT/DATABASE
+try:
+    DATABASE_URL = os.environ["DATABASE_URL"] #+"?sslmode=disable"
+except KeyError:
+    # default to a local database if not set
+    DATABASE_URL = "postgresql://cucinabot:cucinabot@localhost:5432/postgres?sslmode=disable"
 
 class FinalAgent:
     
@@ -36,13 +46,14 @@ class FinalAgent:
 
         
     def create_model(self, model_type: str, system_prompt: Union[str, dict, None]=None, use_memory: bool=True) -> CompiledStateGraph:
-        """Change the model type of the agent."""
-
-        try:
-            self.clear_memory()
-        except Exception:
-            pass
-
+        """Create the LLM model of the agent.
+        Args:
+            model_type (str): The type of model to use, e.g., "GOOGLE", "HUGGINGFACE", "OLLAMA".
+            system_prompt (Union[str, dict, None]): The system prompt to use for the agent.
+            use_memory (bool): Whether to use memory for the agent. It needs a running Postgres database.
+        Returns:
+            CompiledStateGraph: The compiled state graph of the agent.
+        """
         if system_prompt is None:
             system_prompt = self.system_prompt
 
@@ -116,37 +127,61 @@ class FinalAgent:
         builder.add_edge("tools", "assistant")
 
         if use_memory:
-            checkpointer = InMemorySaver()
-            self.agent = builder.compile(checkpointer=checkpointer)
+            from psycopg import Connection
+            from psycopg.rows import dict_row
+
+            conn = Connection.connect(DATABASE_URL, autocommit=True, prepare_threshold=0, row_factory=dict_row)
+            store = PostgresStore(conn)
+            store.setup()
+            checkpointer = PostgresSaver(conn)
+            checkpointer.setup()
+                
+            self.agent = builder.compile(checkpointer=checkpointer, store=store)
+
+            # We want to always start with a clean memory for the agent
+            try:
+                self.clear_thread_memory()
+            except Exception as e:
+                print(f"No memory to clear at startup ({e}), continuing...")
+                pass
         else:
             checkpointer = None
+            store=None
             self.agent = builder.compile()
         print(f"Agent from {model_type} initialized.")
     
-    def clear_memory(self, thread_id: str='1') -> None:
-        """ Clear the memory for a given thread_id. """
+    def clear_thread_memory(self, thread_id: str='1') -> None:
+        """ Clear the checkpointer memory for a given thread_id. """
         memory = self.agent.checkpointer
         if memory is None:
             return
         try:
-            # If it's an InMemorySaver (which MemorySaver is an alias for),
-            # we can directly clear the storage and writes
-            if hasattr(memory, 'storage') and hasattr(memory, 'writes'):
-                # Clear all checkpoints for this thread_id (all namespaces)
-                memory.storage.pop(thread_id, None)
+            from psycopg import Connection
+            from psycopg.rows import dict_row
 
-                # Clear all writes for this thread_id (for all namespaces)
-                keys_to_remove = [key for key in memory.writes.keys() if key[0] == thread_id]
-                for key in keys_to_remove:
-                    memory.writes.pop(key, None)
+            conn = Connection.connect(DATABASE_URL, autocommit=True, prepare_threshold=0, row_factory=dict_row)
+            with conn.cursor() as cur:
+                cur.execute(f"DELETE FROM checkpoints WHERE thread_id = '{thread_id}';")
+                cur.execute(f"DELETE FROM checkpoint_blobs WHERE thread_id = '{thread_id}';")
+                cur.execute(f"DELETE FROM checkpoint_writes WHERE thread_id = '{thread_id}';")
 
-                print(f"Memory cleared for thread_id: {thread_id}")
-                return
+            print(f"Memory cleared for thread_id: {thread_id}")
+            return
 
         except Exception as e:
             print(f"Error clearing InMemorySaver storage for thread_id {thread_id}: {e}")
     
     def __call__(self, question: str, attached_file: dict, recursion_limit=-1) -> str:
+        """Invoke the agent with a question and an optional attached file.
+
+        Args:
+            question (str): The question to ask the agent.
+            attached_file (dict): A dictionary of thet attached file with keys 'name', 'content', and 'path'.
+                - 'name': The name of the attached file.
+                - 'content': The content of the attached file as bytes.
+                - 'path': The path to the attached file.
+            recursion_limit (int): The recursion limit for the agent. Default is -1, which means no limit.
+        """
         print(f"Agent received question (first 100 chars): {question[:100]}...")
 
         if attached_file['name'] != "" and attached_file['content'] is not None:

@@ -100,7 +100,7 @@ class GradioUI:
                 model_selector = gr.Dropdown(choices=["Google", "Ollama", "Hugging Face"], label="Inference provider", info="Which model provider should be used for inference? (Conversation history will be erased)", interactive=True)
 
             clear_btn.click(
-                fn=self.agent_class.clear_memory,
+                fn=self.agent_class.clear_thread_memory,
                 outputs=[chatbot],
                 show_progress=False
                 )
