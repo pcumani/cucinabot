@@ -133,7 +133,7 @@ class FinalAgent:
                 from psycopg_pool import ConnectionPool
                 from psycopg.rows import dict_row
 
-                pool = ConnectionPool(DATABASE_URL, kwargs={"row_factory": dict_row, "prepare_threshold": 0}, min_size=1, max_size=5)
+                pool = ConnectionPool(DATABASE_URL, kwargs={"row_factory": dict_row, "prepare_threshold": 0, "autocommit": True}, min_size=1, max_size=5)
                 store = PostgresStore(pool)
                 store.setup()
 
