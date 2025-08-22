@@ -35,7 +35,7 @@ def recipes_info_tool(query: str) -> str:
     print(f"-- Extracting recipe information for query: {query}")
     results = bm25_retriever.invoke(query)
     if results:
-        print(f"\tFound {len(results)} matching recipes.")
+        print(f"\tFound {len(results)} matching recipes: {[doc.page_content.split('\n')[0] for doc in results[:3]]}")
         return "\n\n---\n\n".join([doc.page_content for doc in results[:3]])
     else:
         print("\tNo matching guest information found.")

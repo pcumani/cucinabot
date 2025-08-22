@@ -28,8 +28,7 @@ def stream_to_gradio(
     """Runs an agent with the given task and streams the messages from the agent as gradio ChatMessages."""
     import gradio as gr
 
-    #agent_reply = agent.agent.invoke({"messages": [HumanMessage(content=task)]}, {"configurable": {"thread_id": "1"}}, stream=True, additional_args=additional_args)
-    agent_reply = agent(task, {'name': "", 'content': None})
+    agent_reply = agent(task, attached_file={'name': "", 'content': None})
     print(f'Last message of {len(agent_reply['messages'])} metadata {agent_reply['messages'][-1].response_metadata} {agent_reply['messages'][-1].usage_metadata}')
     if agent_reply['messages'][-1].response_metadata['finish_reason'] != 'STOP':
         print(agent_reply['messages'])

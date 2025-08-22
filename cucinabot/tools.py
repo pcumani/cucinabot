@@ -1,5 +1,42 @@
+from typing_extensions import TypedDict
 from langchain_core.tools import tool
+from langgraph.config import get_store
+from langchain_core.runnables import RunnableConfig
 
+class UserInfo(TypedDict): 
+    name: str
+    liked_foods: list[str]
+    disliked_foods: list[str]
+
+@tool
+def get_user_info(config: RunnableConfig) -> str:
+    """Look up user info."""
+    print(f'-- Get user info tool called')
+    store = get_store()
+    user_id = config["configurable"].get("user_id")
+    user_info = store.get(("users",), user_id) 
+    print(f'\t {user_info}')
+    return str(user_info.value) if user_info else "Unknown user"
+
+@tool
+def save_user_info(user_info: UserInfo, config: RunnableConfig) -> str: 
+    """Save and update user info."""
+    print(f'-- Save user info tool called: {user_info}')
+    store = get_store()
+    current_info = store.get(("users",), config["configurable"].get("user_id"))
+    if current_info:
+        # Merge existing info with new info
+        current_value = current_info.value
+        if 'name' in user_info and user_info['name']:
+            current_value['name'] = user_info['name']
+        if 'liked_foods' in user_info and user_info['liked_foods']:
+            current_value['liked_foods'] = list(set(current_value.get('liked_foods', []) + user_info['liked_foods']))
+        if 'disliked_foods' in user_info and user_info['disliked_foods']:
+            current_value['disliked_foods'] = list(set(current_value.get('disliked_foods', []) + user_info['disliked_foods']))
+        user_info = current_value
+    user_id = config["configurable"].get("user_id")
+    store.put(("users",), user_id, user_info) 
+    return "Successfully saved user info."
 
 @tool
 def unit_converter_tool(value: float, from_unit: str, to_unit: str) -> str:

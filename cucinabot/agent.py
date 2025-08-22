@@ -4,6 +4,7 @@ import base64
 import yaml
 from typing import TypedDict, Annotated, Union
 from dotenv import load_dotenv
+from psycopg.errors import ConnectionTimeout
 
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.store.postgres import PostgresStore
@@ -20,7 +21,7 @@ from langchain_core.messages.utils import (
 
 # Import our custom tools from their modules
 from cucinabot.tools import unit_converter_tool, \
-                multiply, add, subtract, divide
+                multiply, add, subtract, divide, get_user_info, save_user_info
 from cucinabot.retriever import recipes_info_tool
 
 load_dotenv()
@@ -31,6 +32,9 @@ try:
 except KeyError:
     # default to a local database if not set
     DATABASE_URL = "postgresql://cucinabot:cucinabot@localhost:5432/postgres?sslmode=disable"
+
+class AgentState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
 
 class FinalAgent:
     
@@ -88,11 +92,8 @@ class FinalAgent:
 
         tools = [unit_converter_tool,
                 multiply, add, subtract, divide,
-                recipes_info_tool]
+                recipes_info_tool, get_user_info, save_user_info]
         chat_with_tools = chat.bind_tools(tools)
-
-        class AgentState(TypedDict):
-            messages: Annotated[list[AnyMessage], add_messages]
 
         def assistant(state: AgentState):
             messages = trim_messages(
@@ -127,15 +128,19 @@ class FinalAgent:
         builder.add_edge("tools", "assistant")
 
         if use_memory:
-            from psycopg import Connection
-            from psycopg.rows import dict_row
+            try:
+                from psycopg_pool import ConnectionPool
+                from psycopg.rows import dict_row
 
-            conn = Connection.connect(DATABASE_URL, autocommit=True, prepare_threshold=0, row_factory=dict_row)
-            store = PostgresStore(conn)
-            store.setup()
-            checkpointer = PostgresSaver(conn)
-            checkpointer.setup()
-                
+                pool = ConnectionPool(DATABASE_URL, kwargs={"row_factory": dict_row, "prepare_threshold": 0}, min_size=1, max_size=5)
+                store = PostgresStore(pool)
+                store.setup()
+
+                checkpointer = PostgresSaver(pool)
+                checkpointer.setup()
+            except ConnectionTimeout as e:
+                print(f"Error connecting to Postgres database ({e}).")
+                raise e
             self.agent = builder.compile(checkpointer=checkpointer, store=store)
 
             # We want to always start with a clean memory for the agent
@@ -156,14 +161,7 @@ class FinalAgent:
         if memory is None:
             return
         try:
-            from psycopg import Connection
-            from psycopg.rows import dict_row
-
-            conn = Connection.connect(DATABASE_URL, autocommit=True, prepare_threshold=0, row_factory=dict_row)
-            with conn.cursor() as cur:
-                cur.execute(f"DELETE FROM checkpoints WHERE thread_id = '{thread_id}';")
-                cur.execute(f"DELETE FROM checkpoint_blobs WHERE thread_id = '{thread_id}';")
-                cur.execute(f"DELETE FROM checkpoint_writes WHERE thread_id = '{thread_id}';")
+            self.agent.checkpointer.delete_thread(thread_id)
 
             print(f"Memory cleared for thread_id: {thread_id}")
             return
@@ -171,7 +169,8 @@ class FinalAgent:
         except Exception as e:
             print(f"Error clearing InMemorySaver storage for thread_id {thread_id}: {e}")
     
-    def __call__(self, question: str, attached_file: dict, recursion_limit=-1) -> str:
+    
+    def __call__(self, question: str, attached_file: dict, recursion_limit: int=-1, thread_id: str='1', user_id: str='user_0') -> str:
         """Invoke the agent with a question and an optional attached file.
 
         Args:
@@ -179,8 +178,10 @@ class FinalAgent:
             attached_file (dict): A dictionary of thet attached file with keys 'name', 'content', and 'path'.
                 - 'name': The name of the attached file.
                 - 'content': The content of the attached file as bytes.
-                - 'path': The path to the attached file.
+                - 'path': Optional, The path to the attached file.
             recursion_limit (int): The recursion limit for the agent. Default is -1, which means no limit.
+            thread_id (str): The thread ID for the conversation. Default is '1'.
+            user_id (str): The user ID for the conversation. Default is 'user_0'.
         """
         print(f"Agent received question (first 100 chars): {question[:100]}...")
 
@@ -208,8 +209,8 @@ class FinalAgent:
                 question = f"{question}\n\nAttached file extension: {attached_file['name'].split('.')[-1]}. File path: {attached_file['path']} - Attached file base64 encoded:\n{encoded_file}"
 
         if recursion_limit>0:
-            return self.agent.invoke({"messages": [HumanMessage(content=question)]}, {"recursion_limit": recursion_limit, "configurable": {"thread_id": "1"}})
+            return self.agent.invoke({"messages": [HumanMessage(content=question)]}, {"recursion_limit": recursion_limit, "configurable": {"thread_id": thread_id, "user_id": user_id}})
         else:
-            return self.agent.invoke({"messages": [HumanMessage(content=question)]}, {"configurable": {"thread_id": "1"}})
+            return self.agent.invoke({"messages": [HumanMessage(content=question)]}, {"configurable": {"thread_id": thread_id, "user_id": user_id}})
 
 
