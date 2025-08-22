@@ -33,7 +33,7 @@ This repository implements a **LangGraph**‑based agent that helps you generate
 
 - 🧠 **Recipe Suggestion Agent**: Uses a language model within a LangGraph workflow to suggest recipes dynamically. A RAG system leveraging a [recipe dataset](https://www.kaggle.com/datasets/pes12017000148/food-ingredients-and-recipe-dataset-with-images/versions/1) is added.
 - 🖥️ **Gradio Interface**: Provides a browser-based, interactive UI for seamless user input and output display.  
-- 🔄 **Stateful Interaction**: Leverages LangGraph connection to a Postgres database to maintain conversational context, improving suggestion relevance over multiple turns.
+- 🔄 **Stateful Interaction**: Leverages LangGraph connection to a Postgres database to maintain conversational context, improving suggestion relevance over multiple turns. It uses the same Postgres database to record name and food preferences of the user in a long-term memory store.
 
 ---
 
