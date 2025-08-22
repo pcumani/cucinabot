@@ -19,6 +19,15 @@ def get_user_info(config: RunnableConfig) -> str:
     return str(user_info.value) if user_info else "Unknown user"
 
 @tool
+def delete_user_info(config: RunnableConfig) -> str:
+    """Delete user info."""
+    print(f'-- Delete user info tool called')
+    store = get_store()
+    user_id = config["configurable"].get("user_id")
+    store.delete(("users",), user_id) 
+    return "Successfully deleted user info."
+
+@tool
 def save_user_info(user_info: UserInfo, config: RunnableConfig) -> str: 
     """Save and update user info."""
     print(f'-- Save user info tool called: {user_info}')

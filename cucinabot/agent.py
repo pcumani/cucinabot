@@ -21,7 +21,8 @@ from langchain_core.messages.utils import (
 
 # Import our custom tools from their modules
 from cucinabot.tools import unit_converter_tool, \
-                multiply, add, subtract, divide, get_user_info, save_user_info
+                multiply, add, subtract, divide, \
+                get_user_info, save_user_info, delete_user_info
 from cucinabot.retriever import recipes_info_tool
 
 load_dotenv()
@@ -92,7 +93,7 @@ class FinalAgent:
 
         tools = [unit_converter_tool,
                 multiply, add, subtract, divide,
-                recipes_info_tool, get_user_info, save_user_info]
+                recipes_info_tool, get_user_info, save_user_info, delete_user_info]
         chat_with_tools = chat.bind_tools(tools)
 
         def assistant(state: AgentState):
